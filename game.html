@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Juego de Matemáticas</title>
+  <style>
+    :root{
+      --bg:#0f172a;        /* slate-900 */
+      --card:#111827;      /* gray-900 */
+      --muted:#94a3b8;     /* slate-400 */
+      --text:#e5e7eb;      /* gray-200 */
+      --accent:#22c55e;    /* green-500 */
+      --accent-2:#38bdf8;  /* sky-400 */
+      --danger:#ef4444;    /* red-500 */
+      --warning:#f59e0b;   /* amber-500 */
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 10% 10%, #0b1227 0%, var(--bg) 35%, #0b1227 100%);
+      color:var(--text);
+      display:grid; place-items:center; padding:32px;
+    }
+    .app{ width:min(1100px, 100%); }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+    h1{
+      margin:0 0 12px; font-size: clamp(24px, 4vw, 36px); letter-spacing:.3px;
+      display:flex; align-items:center; gap:12px;
+    }
+    h1 .dot{width:10px;height:10px;border-radius:999px;background:var(--accent-2); box-shadow:0 0 20px var(--accent-2)}
+    p.lead{margin:0 0 18px; color:var(--muted)}
+
+    .controls{
+      display:grid; grid-template-columns: repeat(12, 1fr); gap:14px; align-items:end; margin-bottom: 16px;}
+
+    .field{ grid-column: span 12; }
+    @media (min-width: 680px){
+      .field.sm-4{ grid-column: span 4; }
+      .field.sm-3{ grid-column: span 3; }
+      .field.sm-5{ grid-column: span 5; }
+      .field.sm-6{ grid-column: span 6; }
+      .field.sm-8{ grid-column: span 8; }
+      .field.sm-9{ grid-column: span 9; }
+      .field.sm-12{ grid-column: span 12; }
+    }
+
+    label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    select, input[type="number"], input[type="text"]{
+      width:100%; padding:12px 14px; font-size:16px; border-radius:12px;
+      background:#0b1220; color:var(--text); border:1px solid rgba(255,255,255,.1);
+      outline:none; transition: border-color .2s, box-shadow .2s;
+    }
+    select:focus, input:focus{ border-color: var(--accent-2); box-shadow:0 0 0 3px rgba(56,189,248,.2) }
+
+    .radios{ display:flex; gap:10px; flex-wrap:wrap; }
+    .radio{
+      position:relative; padding:10px 14px; border-radius:999px; border:1px solid rgba(255,255,255,.12);
+      cursor:pointer; user-select:none; font-size:14px; color:var(--text);
+      background:#0b1220; transition:transform .06s ease;
+    }
+    .radio:hover{ transform: translateY(-1px) }
+    .radio input{ position:absolute; inset:0; opacity:0; cursor:pointer }
+    .radio.active{ border-color:var(--accent-2); box-shadow: 0 0 0 3px rgba(56,189,248,.15) }
+
+    .hint{ font-size:12px; color:var(--muted); margin-top:6px }
+
+    .actions{ display:flex; gap:10px; flex-wrap:wrap }
+    .btn{
+      border:none; cursor:pointer; padding:12px 16px; border-radius:12px; font-weight:600; font-size:15px;
+      background: linear-gradient(180deg, var(--accent-2), #0ea5e9); color:#06121e; letter-spacing:.2px;
+      box-shadow: 0 10px 20px rgba(14,165,233,.25);
+      transition: transform .08s ease, filter .2s ease, opacity .2s ease;
+    }
+    .btn:hover{ filter:brightness(1.05) }
+    .btn:active{ transform: translateY(1px) }
+    .btn.secondary{ background: linear-gradient(180deg, #64748b, #475569); color:#e5e7eb; box-shadow:none }
+    .btn.ghost{ background: transparent; border:1px solid rgba(255,255,255,.12); color:var(--text)}
+    .btn[disabled]{ opacity:.5; cursor:not-allowed }
+
+    .game{ margin-top: 16px; display:grid; gap:14px; }
+    .hud{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+      padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); }
+    .timer{ font-variant-numeric: tabular-nums; font-weight:700 }
+    .timer.ok{ color:var(--accent) } .timer.mid{ color:var(--warning) } .timer.low{ color:var(--danger) }
+
+    .problem{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:16px; border-radius:14px;
+      background: linear-gradient(180deg, rgba(56,189,248,.08), rgba(56,189,248,.03)); border:1px solid rgba(56,189,248,.25);
+      font-size: clamp(22px, 5vw, 38px); font-weight:700; letter-spacing:.4px; }
+    .answer-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+
+    .chip{ font-size:13px; color:#0b1220; background: var(--accent); padding:6px 10px; border-radius:999px; font-weight:700 }
+    .chip.gray{ background:#64748b; color:#e5e7eb } .chip.red{ background: var(--danger); color:#fff }
+
+    .feedback{ font-size:14px; min-height: 22px; color: var(--muted) }
+    .feedback.ok{ color: var(--accent) } .feedback.bad{ color: var(--danger) }
+
+    .report{ margin-top: 10px; padding:18px; border-radius:14px; border:1px solid rgba(255,255,255,.1);
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); }
+    .report h3{ margin:0 0 12px }
+    .report .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px }
+    .report .kpi{ text-align:center; padding:10px; border-radius:12px; background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06) }
+    .kpi .n{ font-size:28px; font-weight:800; margin-top:4px }
+
+    .db{ margin-top: 18px; padding:16px; border-radius:14px; border:1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); }
+    .db h3{ margin:0 0 10px }
+    .db-controls{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px }
+    table{ width:100%; border-collapse: collapse; font-size:14px }
+    th, td{ padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.08) }
+    th{ text-align:left; color:var(--muted); font-weight:600 }
+    tbody tr:hover{ background: rgba(255,255,255,.03) }
+    .empty{ color:var(--muted); font-size:14px }
+
+    footer{ margin-top:14px; color:var(--muted); font-size:12px; text-align:center }
+    code.inline{ background:rgba(255,255,255,.08); padding:2px 6px; border-radius:6px; border:1px solid rgba(255,255,255,.12) }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1><span class="dot"></span> Juego de Matemáticas</h1>
+      <p class="lead">Elige un tipo de operación, el número de dígitos (para suma, resta o multiplicación) y el tiempo. Cuando pulses <em>Iniciar</em>, resuelve tantas como puedas antes de que el tiempo llegue a cero.</p>
+
+      <div class="controls">
+        <div class="field sm-12">
+          <label>Tipo de operación</label>
+          <div class="radios" id="opRadios">
+            <label class="radio active"><input type="radio" name="op" value="suma" checked> Suma</label>
+            <label class="radio"><input type="radio" name="op" value="resta"> Resta</label>
+            <label class="radio"><input type="radio" name="op" value="multiplicacion"> Multiplicación</label>
+            <label class="radio"><input type="radio" name="op" value="algebra"> Álgebra (resolver x)</label>
+          </div>
+        </div>
+
+        <div class="field sm-6" id="digitsField">
+          <label>Número de dígitos</label>
+          <select id="digits">
+            <option value="1">1 dígito</option>
+            <option value="2">2 dígitos</option>
+            <option value="3">3 dígitos</option>
+            <option value="4">4 dígitos</option>
+          </select>
+          <div class="hint" id="digitsHint">Aplica para suma, resta y multiplicación.</div>
+        </div>
+
+        <div class="field sm-3">
+          <label>Tiempo</label>
+          <select id="duration">
+            <option value="30">30 segundos</option>
+            <option value="45">45 segundos</option>
+            <option value="60" selected>60 segundos</option>
+          </select>
+        </div>
+
+        <div class="field sm-3 actions">
+          <button class="btn" id="startBtn">Iniciar</button>
+          <button class="btn ghost" id="resetBtn" disabled>Reiniciar</button>
+        </div>
+      </div>
+
+      <div class="game" id="game" hidden>
+        <div class="hud">
+          <div>Mostradas: <span class="chip gray" id="shown">0</span> | Correctas: <span class="chip" id="right">0</span> | Incorrectas: <span class="chip red" id="wrong">0</span></div>
+          <div class="timer ok" id="timer">60.0s</div>
+        </div>
+
+        <div class="problem" id="problem">Pulsa <strong>Iniciar</strong> para empezar…</div>
+        <div class="answer-row">
+          <label for="answer" class="sr-only" style="position:absolute;left:-9999px">Respuesta</label>
+          <input id="answer" type="number" inputmode="numeric" placeholder="Escribe tu respuesta y presiona Enter" />
+          <button class="btn secondary" id="submitBtn">Responder</button>
+        </div>
+        <div class="feedback" id="feedback"></div>
+
+        <div class="report" id="report" hidden>
+          <h3>Informe final</h3>
+          <div class="grid">
+            <div class="kpi"><div>Aparecieron</div><div class="n" id="repShown">0</div></div>
+            <div class="kpi"><div>Bien</div><div class="n" id="repRight">0</div></div>
+            <div class="kpi"><div>Mal</div><div class="n" id="repWrong">0</div></div>
+          </div>
+          <div id="saveNote" class="hint" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="db" id="db">
+        <h3>Historial (Base de datos local)</h3>
+        <div class="db-controls">
+          <button class="btn secondary" id="exportCsvBtn">Exportar CSV</button>
+          <button class="btn ghost" id="clearDbBtn">Borrar historial</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Operación</th>
+                <th>Dígitos</th>
+                <th>Tiempo (s)</th>
+                <th>Aparecieron</th>
+                <th>Bien</th>
+                <th>Mal</th>
+                <th>Tasa de éxito</th>
+              </tr>
+            </thead>
+            <tbody id="dbBody">
+              <tr><td colspan="8" class="empty">No hay registros aún.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <footer>
+        Consejo: puedes pulsar <code class="inline">Enter</code> para enviar tu respuesta más rápido.
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // Utilidades ----------------------------
+    const $ = (sel) => document.querySelector(sel);
+    const opRadios = $('#opRadios');
+    const startBtn = $('#startBtn');
+    const resetBtn = $('#resetBtn');
+    const digitsField = $('#digitsField');
+    const digitsSelect = $('#digits');
+    const durationSelect = $('#duration');
+
+    const gameEl = $('#game');
+    const problemEl = $('#problem');
+    const answerEl = $('#answer');
+    const submitBtn = $('#submitBtn');
+    const feedbackEl = $('#feedback');
+    const timerEl = $('#timer');
+    const shownEl = $('#shown');
+    const rightEl = $('#right');
+    const wrongEl = $('#wrong');
+
+    const reportEl = $('#report');
+    const repShownEl = $('#repShown');
+    const repRightEl = $('#repRight');
+    const repWrongEl = $('#repWrong');
+    const saveNote = $('#saveNote');
+
+    // DB UI
+    const dbBody = $('#dbBody');
+    const exportCsvBtn = $('#exportCsvBtn');
+    const clearDbBtn = $('#clearDbBtn');
+
+    const pretty = (n) => n.toLocaleString('es-CO');
+    const fmtPct = (x) => isFinite(x) ? (x*100).toFixed(1) + '%' : '0.0%';
+
+    function randInt(min, max){
+      // Ambos incluidos
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    function digitsRange(d){
+      if(d === 1){
+        return {min: 0, max: 9};
+      } else {
+        const min = Math.pow(10, d-1);
+        const max = Math.pow(10, d) - 1;
+        return {min, max};
+      }
+    }
+
+    // Generadores de problemas --------------
+    function genSuma(d){
+      const {min, max} = digitsRange(d);
+      const a = randInt(min, max);
+      const b = randInt(min, max);
+      return { text: `${a} + ${b} = ?`, answer: a + b };
+    }
+    function genResta(d){
+      const {min, max} = digitsRange(d);
+      let a = randInt(min, max);
+      let b = randInt(min, max);
+      if(a < b){ const t=a; a=b; b=t; } // evita negativos por defecto
+      return { text: `${a} − ${b} = ?`, answer: a - b };
+    }
+    function genMul(d){
+      const {min, max} = digitsRange(d);
+      const a = randInt(min, max);
+      const b = randInt(min, max);
+      return { text: `${a} × ${b} = ?`, answer: a * b };
+    }
+    function genAlgebra(){
+      // Estructura: a·x + b = c, con x entero en [-9, -1]∪[1, 9]
+      const x = randInt(1,9) * (Math.random()<0.3 ? -1 : 1); // algunos negativos
+      const a = randInt(1,9); // coeficiente pequeño para agilidad
+      const bSign = Math.random() < 0.5 ? -1 : 1;
+      const b = bSign * randInt(0,9);
+      const c = a*x + b;
+      const left = `${a!==1? a+'·' : ''}x ${b>=0? '+ ' : '− '} ${Math.abs(b)}`;
+      return { text: `${left} = ${c}  →  ¿x = ?`, answer: x };
+    }
+
+    function genProblem(op, d){
+      switch(op){
+        case 'suma': return genSuma(d);
+        case 'resta': return genResta(d);
+        case 'multiplicacion': return genMul(d);
+        case 'algebra': return genAlgebra();
+      }
+    }
+
+    // Estado del juego ----------------------
+    const state = {
+      running: false,
+      op: 'suma',
+      digits: 1,
+      duration: 60,
+      deadline: 0,
+      shown: 0,       // problemas mostrados
+      right: 0,
+      wrong: 0,
+      current: null,
+      awaiting: false, // <-- indica si hay un problema pendiente de responder
+      tickId: null
+    };
+
+    function setOp(op){
+      state.op = op;
+      opRadios.querySelectorAll('.radio').forEach(l => l.classList.remove('active'));
+      opRadios.querySelector(`input[value="${op}"]`).parentElement.classList.add('active');
+
+      const algebra = op === 'algebra';
+      digitsField.style.opacity = algebra ? .5 : 1;
+      digitsSelect.disabled = algebra;
+      $('#digitsHint').textContent = algebra ? 'Para álgebra no aplica el número de dígitos.' : 'Aplica para suma, resta y multiplicación.';
+    }
+
+    opRadios.addEventListener('change', (e)=>{
+      if(e.target && e.target.name === 'op'){
+        setOp(e.target.value);
+      }
+    });
+
+    // Flujo del juego -----------------------
+    function updateHUD(){
+      shownEl.textContent = pretty(state.shown);
+      rightEl.textContent = pretty(state.right);
+      wrongEl.textContent = pretty(state.wrong);
+    }
+
+    function nextProblem(){
+      const d = parseInt(digitsSelect.value, 10);
+      const p = genProblem(state.op, d);
+      state.current = p;
+      problemEl.textContent = p.text;
+      answerEl.value = '';
+      answerEl.focus();
+      state.awaiting = true;
+      state.shown += 1; // contamos al mostrar (marcamos como pendiente)
+      updateHUD();
+    }
+
+    function startTimer(){
+      const duration = parseInt(durationSelect.value, 10);
+      state.duration = duration;
+      const now = performance.now();
+      state.deadline = now + duration*1000;
+
+      function tick(){
+        const t = Math.max(0, state.deadline - performance.now());
+        const secs = (t/1000);
+        timerEl.textContent = `${secs.toFixed(1)}s`;
+        timerEl.classList.remove('ok','mid','low');
+        if(secs > duration*0.6) timerEl.classList.add('ok');
+        else if(secs > duration*0.25) timerEl.classList.add('mid');
+        else timerEl.classList.add('low');
+        if(t <= 0){
+          stopGame();
+        }
+      }
+      tick();
+      state.tickId = setInterval(tick, 100);
+    }
+
+    function startGame(){
+      if(state.running) return;
+      state.running = true;
+      state.shown = 0; state.right = 0; state.wrong = 0; state.current = null; saveNote.textContent='';
+      feedbackEl.textContent=''; problemEl.textContent = 'Preparado…';
+
+      // bloquear controles
+      startBtn.disabled = true; resetBtn.disabled = false;
+      opRadios.querySelectorAll('input').forEach(i => i.disabled = true);
+      digitsSelect.disabled = state.op === 'algebra' ? true : false;
+      durationSelect.disabled = true;
+
+      // mostrar tablero
+      gameEl.hidden = false; reportEl.hidden = true;
+
+      // preparar y arrancar
+      nextProblem();
+      startTimer();
+    }
+
+    function stopGame(){
+      if(!state.running) return;
+      state.running = false;
+      clearInterval(state.tickId);
+      state.tickId = null;
+
+      // Si quedó un problema en pantalla sin responder, NO lo contamos
+      if(state.awaiting && state.shown > 0){
+        state.shown -= 1;
+        state.awaiting = false;
+      }
+
+      // desbloquear controles
+      startBtn.disabled = false; resetBtn.disabled = false;
+      opRadios.querySelectorAll('input').forEach(i => i.disabled = false);
+      digitsSelect.disabled = state.op === 'algebra';
+      durationSelect.disabled = false;
+
+      // mostrar informe (ajustado)
+      repShownEl.textContent = pretty(state.shown);
+      repRightEl.textContent = pretty(state.right);
+      repWrongEl.textContent = pretty(state.wrong);
+      reportEl.hidden = false;
+
+      // Guardar en la base de datos local
+      const tasa = state.shown > 0 ? state.right / state.shown : 0;
+      const record = {
+        fecha: new Date().toLocaleString('es-CO', { hour12:false }),
+        operacion: state.op,
+        digitos: (state.op === 'algebra') ? '—' : parseInt(digitsSelect.value,10),
+        tiempo: state.duration,
+        aparecieron: state.shown,
+        bien: state.right,
+        mal: state.wrong,
+        tasa_exito: tasa
+      };
+      addRecord(record);
+      saveNote.textContent = '✅ Resultado guardado en la base de datos local.';
+
+      // desactivar entrada de respuesta
+      answerEl.blur();
+
+      // actualizar HUD tras el posible ajuste
+      updateHUD();
+    }
+
+    function resetGame(){
+      clearInterval(state.tickId); state.tickId = null; state.running = false;
+      startBtn.disabled = false; resetBtn.disabled = true;
+      opRadios.querySelectorAll('input').forEach(i => i.disabled = false);
+      digitsSelect.disabled = state.op === 'algebra';
+      durationSelect.disabled = false;
+
+      // reset indicadores
+      timerEl.textContent = `${parseInt(durationSelect.value,10).toFixed(1)}s`;
+      timerEl.classList.remove('ok','mid','low'); timerEl.classList.add('ok');
+      state.awaiting = false;
+      shownEl.textContent = '0'; rightEl.textContent = '0'; wrongEl.textContent = '0';
+      feedbackEl.textContent = ''; saveNote.textContent = '';
+      gameEl.hidden = true; reportEl.hidden = true;
+      problemEl.textContent = 'Pulsa \u003cstrong\u003eIniciar\u003c/strong\u003e para empezar…';
+    }
+
+    function submitAnswer(){
+      if(!state.running) return;
+      const val = answerEl.value.trim();
+      if(val === '') return;
+      const user = Number(val);
+      const correct = Number(state.current.answer);
+      if(Number.isFinite(user) && Math.abs(user - correct) < 1e-9){
+        state.right += 1;
+        feedbackEl.textContent = '¡Correcto!';
+        feedbackEl.classList.remove('bad'); feedbackEl.classList.add('ok');
+      }else{
+        state.wrong += 1;
+        feedbackEl.textContent = `Incorrecto. Respuesta correcta: ${correct}`;
+        feedbackEl.classList.remove('ok'); feedbackEl.classList.add('bad');
+      }
+      state.awaiting = false; // este ya se respondió
+      updateHUD();
+      nextProblem(); // mostrar el siguiente y marcar awaiting=true de nuevo
+    }
+
+    // --- Base de datos en localStorage ---
+    const DB_KEY = 'mathGameDB_v1';
+
+    function loadDB(){
+      try{ return JSON.parse(localStorage.getItem(DB_KEY)) || []; }
+      catch{ return []; }
+    }
+    function saveDB(rows){ localStorage.setItem(DB_KEY, JSON.stringify(rows)); }
+
+    function addRecord(row){
+      const rows = loadDB();
+      rows.push(row);
+      saveDB(rows);
+      renderDB(rows);
+    }
+
+    function renderDB(rows = loadDB()){
+      if(!rows.length){
+        dbBody.innerHTML = `<tr><td colspan="8" class="empty">No hay registros aún.</td></tr>`;
+        return;
+      }
+      const html = rows.map(r => {
+        const tasa = fmtPct(r.tasa_exito);
+        return `<tr>
+          <td>${r.fecha}</td>
+          <td>${r.operacion}</td>
+          <td>${r.digitos}</td>
+          <td>${r.tiempo}</td>
+          <td>${r.aparecieron}</td>
+          <td>${r.bien}</td>
+          <td>${r.mal}</td>
+          <td>${tasa}</td>
+        </tr>`;
+      }).join('');
+      dbBody.innerHTML = html;
+    }
+
+    function toCSV(rows = loadDB()){
+      const header = ['fecha','operacion','digitos','tiempo','aparecieron','bien','mal','tasa_exito'];
+      const esc = (v) => {
+        const s = String(v);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+      };
+      const body = rows.map(r => header.map(k => esc(k==='tasa_exito' ? r[k] : r[k])).join(',')).join('\n');
+      return header.join(',') + '\n' + body + '\n';
+    }
+
+    function downloadCSV(){
+      const rows = loadDB();
+      if(!rows.length){ alert('No hay registros para exportar.'); return; }
+      const blob = new Blob([toCSV(rows)], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'historial_juego_matematicas.csv';
+      document.body.appendChild(a); a.click();
+      setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+    }
+
+    function clearDB(){
+      if(!confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) return;
+      localStorage.removeItem(DB_KEY);
+      renderDB([]);
+    }
+
+    // Eventos --------------------------------
+    startBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', resetGame);
+    submitBtn.addEventListener('click', submitAnswer);
+    answerEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') submitAnswer(); });
+    exportCsvBtn.addEventListener('click', downloadCSV);
+    clearDbBtn.addEventListener('click', clearDB);
+
+    // Inicialización --------------------------
+    setOp('suma'); // estado inicial
+    renderDB();    // pintar historial al cargar
+  </script>
+</body>
+</html>
